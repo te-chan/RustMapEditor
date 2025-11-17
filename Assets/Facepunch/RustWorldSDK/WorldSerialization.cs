@@ -7,7 +7,7 @@ using LZ4;
 
 public class WorldSerialization
 {
-    public const uint CurrentVersion = 9;
+    public const uint CurrentVersion = 10;
 
     public static uint Version
     {
@@ -167,7 +167,7 @@ public class WorldSerialization
                 using (var binaryReader = new BinaryReader(fileStream))
                 {
                     Version = binaryReader.ReadUInt32();
-
+                    long Timestamp = binaryReader.ReadInt64();
                     if (Version != CurrentVersion)
                         Debug.LogWarning("Map Version is: " + Version + " whilst Rust is on: " + CurrentVersion);
 
