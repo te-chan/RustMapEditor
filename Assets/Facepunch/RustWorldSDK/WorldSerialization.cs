@@ -175,6 +175,17 @@ public class WorldSerialization
 
                     using (var compressionStream = new LZ4Stream(fileStream, LZ4StreamMode.Decompress))
                         world = Serializer.Deserialize<WorldData>(compressionStream);
+
+                    // Fix null VectorData fields in PrefabData (game uses struct, we use class)
+                    foreach (var prefab in world.prefabs)
+                    {
+                        if (prefab.position == null)
+                            prefab.position = new VectorData(0, 0, 0);
+                        if (prefab.rotation == null)
+                            prefab.rotation = new VectorData(0, 0, 0);
+                        if (prefab.scale == null)
+                            prefab.scale = new VectorData(1, 1, 1);
+                    }
                 }
             }
         }
