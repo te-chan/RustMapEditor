@@ -65,6 +65,9 @@ public static class TerrainManager
     /// <summary>Resolution of the splatmap/alphamap.</summary>
     /// <value>Power of ^2, between 512 - 2048.</value>
     public static int SplatMapRes { get; private set; }
+    /// <summary>Resolution of the biomemap.</summary>
+    /// <value>Power of ^2, between 512 - 2048.</value>
+    public static int BiomeMapRes { get; private set; }
     /// <summary>The world size of each splat relative to the terrain size it covers.</summary>
     public static float SplatSize { get => Land.terrainData.size.x / SplatMapRes; }
 
@@ -89,7 +92,7 @@ public static class TerrainManager
             case LayerType.Biome:
                 if (CurrentLayerType == layer && LayerDirty)
                 {
-                    Biome = Land.terrainData.GetAlphamaps(0, 0, SplatMapRes, SplatMapRes);
+                    Biome = Land.terrainData.GetAlphamaps(0, 0, BiomeMapRes, BiomeMapRes);
                     LayerDirty = false;
                 }
                 return Biome;
@@ -139,10 +142,10 @@ public static class TerrainManager
         }
 
         // Check for array dimensions not matching alphamap.
-        if (array.GetLength(0) != SplatMapRes || array.GetLength(1) != SplatMapRes || array.GetLength(2) != LayerCount(layer))
+        if (array.GetLength(0) != LayerRes(layer) || array.GetLength(1) != LayerRes(layer) || array.GetLength(2) != LayerCount(layer))
         {
-            Debug.LogError($"SetSplatMap(array[{array.GetLength(0)}, {array.GetLength(1)}, {LayerCount(layer)}]) dimensions invalid, should be " +
-                $"array[{ SplatMapRes}, { SplatMapRes}, {LayerCount(layer)}].");
+            Debug.LogError($"SetSplatMap(array[{array.GetLength(0)}, {array.GetLength(1)}, {array.GetLength(2)}]) dimensions invalid, should be " +
+                $"array[{LayerRes(layer)}, {LayerRes(layer)}, {LayerCount(layer)}].");
             return;
         }
 
@@ -202,7 +205,6 @@ public static class TerrainManager
                 });
 
                 Land.terrainData.SetHoles(0, 0, Alpha);
-                AlphaDirty = false;
                 return;
             }
 
@@ -215,7 +217,6 @@ public static class TerrainManager
 
         Alpha = array;
         Land.terrainData.SetHoles(0, 0, Alpha);
-        AlphaDirty = false;
     }
 
     private static void SplatMapChanged(Terrain terrain, string textureName, RectInt texelRegion, bool synched)
@@ -584,7 +585,7 @@ public static class TerrainManager
 
     private static TerrainLayer[] GetBiomeLayers()
     {
-        TerrainLayer[] textures = new TerrainLayer[4];
+        TerrainLayer[] textures = new TerrainLayer[5];
         textures[0] = AssetDatabase.LoadAssetAtPath<TerrainLayer>("Assets/Resources/Textures/Biome/Arid.terrainlayer");
         textures[0].diffuseTexture = Resources.Load<Texture2D>("Textures/Biome/arid");
         textures[1] = AssetDatabase.LoadAssetAtPath<TerrainLayer>("Assets/Resources/Textures/Biome/Temperate.terrainlayer");
@@ -593,6 +594,8 @@ public static class TerrainManager
         textures[2].diffuseTexture = Resources.Load<Texture2D>("Textures/Biome/tundra");
         textures[3] = AssetDatabase.LoadAssetAtPath<TerrainLayer>("Assets/Resources/Textures/Biome/Arctic.terrainlayer");
         textures[3].diffuseTexture = Resources.Load<Texture2D>("Textures/Biome/arctic");
+        textures[4] = AssetDatabase.LoadAssetAtPath<TerrainLayer>("Assets/Resources/Textures/Biome/Jungle.terrainlayer");
+        textures[4].diffuseTexture = Resources.Load<Texture2D>("Textures/Biome/jungle");
         return textures;
     }
 
@@ -663,6 +666,19 @@ public static class TerrainManager
         Callbacks.InvokeLayerChanged(layer, topology);
     }
 
+    /// <summary>Layer resolution in layer chosen, used for determining the size of the splatmap array.</summary>
+    /// <param name="layer">The LayerType to return the texture count from. (Ground, Biome or Topology)</param>
+    public static int LayerRes(LayerType layer)
+    {
+        return layer switch
+        {
+            LayerType.Ground => SplatMapRes,
+            LayerType.Biome => BiomeMapRes,
+            LayerType.Alpha => AlphaMapRes,
+            _ => SplatMapRes
+        };
+    }
+
     /// <summary>Layer count in layer chosen, used for determining the size of the splatmap array.</summary>
     /// <param name="layer">The LayerType to return the texture count from. (Ground, Biome or Topology)</param>
     public static int LayerCount(LayerType layer)
@@ -670,7 +686,7 @@ public static class TerrainManager
         return layer switch
         {
             LayerType.Ground => 8,
-            LayerType.Biome => 4,
+            LayerType.Biome => 5,
             _ => 2
         };
     }
@@ -743,6 +759,7 @@ public static class TerrainManager
         private static IEnumerator SetSplatMaps(MapInfo mapInfo, int progressID)
         {
             SplatMapRes = mapInfo.splatRes;
+            BiomeMapRes = mapInfo.biomeMap.GetLength(0);
 
             SetSplatMap(mapInfo.splatMap, LayerType.Ground);
             SetSplatMap(mapInfo.biomeMap, LayerType.Biome);

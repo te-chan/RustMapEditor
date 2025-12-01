@@ -78,6 +78,7 @@ public class WorldSerialization
         [ProtoMember(13)] public int splat;
         [ProtoMember(14)] public int topology;
         [ProtoMember(15)] public VectorData[] nodes;
+        [ProtoMember(16)] public int toplogy;
     }
 
     [Serializable]
@@ -146,6 +147,7 @@ public class WorldSerialization
                 using (var binaryWriter = new BinaryWriter(fileStream))
                 {
                     binaryWriter.Write(Version);
+                    binaryWriter.Write((long)(DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds);
 
                     using (var compressionStream = new LZ4Stream(fileStream, LZ4StreamMode.Compress))
                         Serializer.Serialize(compressionStream, world);
